@@ -1,0 +1,21 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+
+# Local secrets and tokens
+.env
+credentials.json
+token.json
+
+# Local database
+ainews.db
+
+# Streamlit cache
+.streamlit/
+
+# Local GitHub CLI auth scratch
+.ghconfig/
