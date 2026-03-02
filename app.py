@@ -68,6 +68,11 @@ def get_ai_engine(api_key: str) -> AIEngine:
     return AIEngine(api_key=api_key, model=model_name)
 
 
+def get_genai_api_key() -> str:
+    """Return Gemini key, preferring AI Studio naming."""
+    return os.getenv("GEMINI_API_KEY", "").strip() or os.getenv("GOOGLE_GENAI_API_KEY", "").strip()
+
+
 # ------------------------------
 # Sidebar: data actions + config
 # ------------------------------
@@ -128,8 +133,8 @@ st.sidebar.divider()
 st.sidebar.subheader("Configuration")
 
 genai_api_key_val = st.sidebar.text_input(
-    "Google GenAI API Key",
-    value=os.getenv("GOOGLE_GENAI_API_KEY", ""),
+    "Gemini API Key (Google AI Studio)",
+    value=get_genai_api_key(),
     type="password",
 )
 apify_api_key_val = st.sidebar.text_input(
@@ -149,6 +154,8 @@ rss_feeds_val = st.sidebar.text_area(
 if st.sidebar.button("Save Configuration", use_container_width=True):
     save_env_values(
         {
+            "GEMINI_API_KEY": genai_api_key_val.strip(),
+            # Backward compatibility for older env naming in this project.
             "GOOGLE_GENAI_API_KEY": genai_api_key_val.strip(),
             "APIFY_API_KEY": apify_api_key_val.strip(),
             "GMAIL_LABEL": gmail_label_val.strip() or "AI-News",
@@ -181,9 +188,9 @@ with briefing_tab:
     st.write(f"Loaded **{len(articles)}** articles between **{start_date}** and **{end_date}**.")
 
     if st.button("Generate Synthesized Briefing", type="primary"):
-        api_key = os.getenv("GOOGLE_GENAI_API_KEY", "").strip()
+        api_key = get_genai_api_key()
         if not api_key:
-            st.error("Missing GOOGLE_GENAI_API_KEY. Add it in sidebar configuration.")
+            st.error("Missing GEMINI_API_KEY. Add your Google AI Studio key in sidebar configuration.")
         elif not articles:
             st.warning("No articles found for the selected date range.")
         else:
@@ -229,9 +236,9 @@ with linkedin_tab:
         selected_article = options[selected_label]
 
         if st.button("Generate LinkedIn Post"):
-            api_key = os.getenv("GOOGLE_GENAI_API_KEY", "").strip()
+            api_key = get_genai_api_key()
             if not api_key:
-                st.error("Missing GOOGLE_GENAI_API_KEY. Add it in sidebar configuration.")
+                st.error("Missing GEMINI_API_KEY. Add your Google AI Studio key in sidebar configuration.")
             else:
                 source_text = (
                     f"Title: {selected_article.title}\n"

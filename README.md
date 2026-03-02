@@ -1,42 +1,60 @@
 # AI News Aggregator and Productivity Synthesizer
 
-A local-first Streamlit app that ingests AI updates from Gmail newsletters, RSS feeds, and modular social sources, stores everything in SQLite, and uses Google GenAI to generate:
+A local-first Streamlit app that collects AI news from your Gmail newsletters and RSS feeds, stores it in SQLite, and uses Gemini to produce a practical daily business briefing plus LinkedIn-ready content.
 
-- A daily executive AI briefing
-- Function-specific productivity insights (Product, Marketing, Engineering, Sales)
-- LinkedIn-ready post remixes from selected stories
+## What this is useful for
 
-## Features
+- Staying updated on AI launches without reading every newsletter manually
+- Translating technical AI updates into business impact for Product, Marketing, Engineering, and Sales teams
+- Turning one selected update into a polished LinkedIn post quickly
+- Maintaining your own local history of AI updates for date-based review
 
-- Gmail ingestion with OAuth (`AI-News` label by default)
-- RSS ingestion from configurable feed list
-- Social ingestion placeholder (modular hook for Apify or any scraper API)
-- SQLite persistence with duplicate-safe inserts
-- Date-range filtering for historical briefings
-- LLM-generated daily synthesis and LinkedIn post generation
-- Local `.env` configuration from Streamlit sidebar
+## How it works
 
-## Project Structure
+1. Ingestion layer (`ingestion.py`):
+- Gmail API reads emails from a chosen label (default: `AI-News`) in the last 24 hours or a date range
+- RSS parser reads entries from configured AI/tech feeds
+- Social ingestion is a modular placeholder for future scraper API integration
+
+2. Storage layer (`database.py`):
+- Saves normalized records to local SQLite database (`ainews.db`)
+- Deduplicates by URL first, then by exact content body
+
+3. AI layer (`ai_engine.py`):
+- Uses Gemini via `google-genai`
+- Generates a structured daily briefing from selected records
+- Generates LinkedIn post drafts using a fixed persona:
+  Associate Director of Product in e-commerce/SaaS
+
+4. UI layer (`app.py`):
+- Sidebar lets you save keys/config, refresh data, and set feed sources
+- Main tabs show daily briefing + raw source expanders + LinkedIn generator/editor
+
+## Tech stack
+
+- Frontend: Streamlit
+- Backend: Python 3.10+
+- Database: SQLite + SQLAlchemy
+- Integrations: Gmail API, RSS (`feedparser`), Gemini (`google-genai`)
+
+## Project structure
 
 ```text
 .
-├── app.py               # Streamlit UI
-├── ai_engine.py         # LLM summarization + LinkedIn remix
-├── database.py          # SQLAlchemy models and DB helpers
-├── ingestion.py         # Gmail/RSS/social ingestion
-├── requirements.txt     # Pinned Python dependencies
-├── .env.example         # Environment variable template
+├── app.py
+├── ai_engine.py
+├── database.py
+├── ingestion.py
+├── requirements.txt
+├── .env.example
+├── .gitignore
 ├── LICENSE
 └── README.md
 ```
 
-## Prerequisites
+## Setup
 
-- Python 3.10+
-- Google account for Gmail API access
-- Google GenAI API key
-
-## 1. Clone and Set Up
+### 1) Clone and install
 
 ```bash
 git clone https://github.com/garvitburad/AI_News_Tracker.git
@@ -47,55 +65,69 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-## 2. Configure Environment Variables
-
-Copy and edit the template:
+### 2) Configure environment
 
 ```bash
 cp .env.example .env
 ```
 
-Set values in `.env`:
+Set these in `.env`:
 
-- `GOOGLE_GENAI_API_KEY`: required for briefing/post generation
-- `GENAI_MODEL`: optional model override (`gemini-2.0-flash` default)
-- `GMAIL_LABEL`: Gmail label to ingest from (`AI-News` default)
-- `RSS_FEEDS`: comma-separated feed URLs
-- `GOOGLE_OAUTH_CREDENTIALS_FILE`: Gmail OAuth credentials file path (`credentials.json`)
-- `GMAIL_TOKEN_FILE`: OAuth token cache path (`token.json`)
-- `APIFY_API_KEY`: optional (social ingestion placeholder)
+- `GEMINI_API_KEY`: required, use your **Google AI Studio** Gemini API key
+- `GENAI_MODEL`: optional (default `gemini-2.0-flash`)
+- `GMAIL_LABEL`: Gmail label to ingest (default `AI-News`)
+- `GOOGLE_OAUTH_CREDENTIALS_FILE`: OAuth client file path (default `credentials.json`)
+- `GMAIL_TOKEN_FILE`: token cache file (default `token.json`)
+- `RSS_FEEDS`: comma-separated RSS URLs
+- `APIFY_API_KEY`: optional (for future social integration)
 
-## 3. Gmail API Setup (Google Cloud Console)
+Note:
+- `GOOGLE_GENAI_API_KEY` is still accepted for backward compatibility, but prefer `GEMINI_API_KEY`.
 
-1. Open Google Cloud Console: https://console.cloud.google.com/
-2. Create/select a project.
-3. Enable **Gmail API** for the project.
-4. Go to **APIs & Services > OAuth consent screen** and configure:
-   - App type: External (or Internal if Workspace)
-   - Add your test user email if app is in testing mode
-5. Go to **APIs & Services > Credentials > Create Credentials > OAuth client ID**.
-6. Choose **Desktop app**.
-7. Download the credentials JSON and place it in project root as `credentials.json` (or update `GOOGLE_OAUTH_CREDENTIALS_FILE`).
-8. On first Gmail refresh in the app, browser OAuth will open and create `token.json`.
+## Gemini key (Google AI Studio)
 
-## 4. Run the App
+1. Open [Google AI Studio](https://aistudio.google.com/)
+2. Create an API key
+3. Put it in `.env` as:
+
+```env
+GEMINI_API_KEY=your_key_here
+```
+
+## Gmail connection setup
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/)
+2. Create/select a project
+3. Enable **Gmail API**
+4. Configure **OAuth consent screen** (External is fine)
+5. Add your Gmail as a test user (if in testing mode)
+6. Create OAuth client credentials:
+- APIs & Services > Credentials > Create Credentials > OAuth client ID
+- App type: **Desktop app**
+7. Download credentials JSON and place it in project root as `credentials.json`
+
+On first refresh, browser OAuth opens and creates `token.json` locally.
+
+## Run the app
 
 ```bash
+source .venv/bin/activate
 streamlit run app.py
 ```
 
-Then in the sidebar:
+Then:
 
-1. Add/save API keys and feed config.
-2. Click **Refresh Data (Last 24 Hours)**.
-3. Select date range and click **Generate Synthesized Briefing**.
-4. In **LinkedIn Post Generator**, pick an item and click **Generate LinkedIn Post**.
+1. In sidebar, add/save `GEMINI_API_KEY` and other settings
+2. Click `Refresh Data (Last 24 Hours)`
+3. Pick date range
+4. Click `Generate Synthesized Briefing`
+5. Open `LinkedIn Post Generator` tab and generate/edit post drafts
 
-## Data Model
+## Data model
 
-SQLite database file: `ainews.db`
+SQLite file: `ainews.db`
 
-`articles` table columns:
+Table: `articles`
 
 - `id`
 - `source_type` (`email`, `rss`, `social`)
@@ -106,30 +138,23 @@ SQLite database file: `ainews.db`
 - `published_date`
 - `processed_status`
 
-Duplicate handling:
-
-- Skips insert if URL already exists
-- Falls back to exact content-body dedupe when URL is missing
-
-## Notes on Social Ingestion
-
-`ingestion.py` includes `fetch_social_posts(...)` as a provider-agnostic placeholder. Wire in Apify (or another service) by replacing this function body while preserving normalized output fields.
-
 ## Troubleshooting
 
-- Gmail ingestion fails with missing credentials:
-  - Ensure `credentials.json` exists and path matches `.env`.
-- OAuth fails for unverified app:
-  - Add your account as a test user in OAuth consent screen.
-- Empty LLM output:
-  - Verify `GOOGLE_GENAI_API_KEY` and internet connectivity.
-- No new records inserted:
-  - Check date window and dedupe behavior.
+- Gmail OAuth errors:
+  Verify `credentials.json`, OAuth consent setup, and test-user permissions.
+- Empty AI output:
+  Verify `GEMINI_API_KEY` and internet access.
+- No inserted records:
+  Check date window, Gmail label, and duplicate filtering.
 
 ## Security
 
-- Do not commit `.env`, `credentials.json`, `token.json`, or `ainews.db`.
-- Rotate keys if accidentally exposed.
+Do not commit these files:
+
+- `.env`
+- `credentials.json`
+- `token.json`
+- `ainews.db`
 
 ## License
 
