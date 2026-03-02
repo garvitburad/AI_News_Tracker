@@ -34,10 +34,11 @@ class Article(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     source_type: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
-    author: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    title: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Keep plain `Mapped[str]` for Python 3.14 + SQLAlchemy 2.0.38 compatibility.
+    author: Mapped[str] = mapped_column(String(255), nullable=True)
+    title: Mapped[str] = mapped_column(String(500), nullable=True)
     content_body: Mapped[str] = mapped_column(Text, nullable=False)
-    url: Mapped[str | None] = mapped_column(String(2048), nullable=True, index=True)
+    url: Mapped[str] = mapped_column(String(2048), nullable=True, index=True)
     published_date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
     processed_status: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
